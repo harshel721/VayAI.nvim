@@ -1,15 +1,15 @@
 return {
-  "herschel21/llm-assist.nvim",
+  "herschel21/VayAI.nvim",
   config = function()
-    require('llm-assist').setup()
+    require('vayai').setup()
   end
 }
 -- OR 
 
 return {
-    dir = '~/workspace/learning/nvim-chat-ai/',  -- Local path
+    dir = '~/workspace/work/vayavya/neovim_plugins/VayAI.nvim/',  -- Local path
     config = function()
-        require('llm-assist').setup()
+        require('vayai').setup()
     end
 }
 

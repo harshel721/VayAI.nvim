@@ -69,7 +69,7 @@ end
 function M.validate()
   if M.options.api_key == "" then
     vim.notify(
-      "⚠️  LLM-Assist: API key not set!\n" ..
+      "⚠️  VayAI: API key not set!\n" ..
       "Please set LLM_API_KEY environment variable or configure in setup().",
       vim.log.levels.WARN
     )
@@ -77,7 +77,7 @@ function M.validate()
   
   if M.options.ca_bundle_path == "" then
     vim.notify(
-      "⚠️  LLM-Assist: CA bundle path not set!\n" ..
+      "⚠️  VayAI: CA bundle path not set!\n" ..
       "Please set LLM_CA_BUNDLE environment variable or configure in setup().",
       vim.log.levels.WARN
     )
@@ -89,7 +89,7 @@ function M.validate()
     local f = io.open(expanded_path, "r")
     if not f then
       vim.notify(
-        "⚠️  LLM-Assist: CA bundle file not found at: " .. expanded_path,
+        "⚠️  VayAI: CA bundle file not found at: " .. expanded_path,
         vim.log.levels.WARN
       )
     else

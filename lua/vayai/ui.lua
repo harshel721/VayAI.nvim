@@ -1,5 +1,5 @@
 local M = {}
-local config = require('llm-assist.config')
+local config = require('vayai.config')
 
 -- State
 M.state = {
@@ -240,7 +240,7 @@ end
 
 -- Show error message
 function M.show_error(message)
-  vim.notify("❌ LLM-Assist: " .. message, vim.log.levels.ERROR)
+  vim.notify("❌ VayAI: " .. message, vim.log.levels.ERROR)
 end
 
 -- Show info message

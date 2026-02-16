@@ -1,5 +1,5 @@
 local M = {}
-local config = require('llm-assist.config')
+local config = require('vayai.config')
 
 -- Job handle for cancellation
 local current_job = nil

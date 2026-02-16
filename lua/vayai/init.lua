@@ -1,7 +1,7 @@
 local M = {}
-local config = require('llm-assist.config')
-local api = require('llm-assist.api')
-local ui = require('llm-assist.ui')
+local config = require('vayai.config')
+local api = require('vayai.api')
+local ui = require('vayai.ui')
 
 -- Plugin state
 M.state = {
