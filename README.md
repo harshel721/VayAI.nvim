@@ -160,17 +160,6 @@ vim.keymap.set('n', '<leader>ai', ':LLMAsk<CR>')
 vim.keymap.set('v', '<leader>ae', ':LLMExplain<CR>')
 ```
 
-### UI Customization
-```lua
-require('vayai').setup({
-  window = {
-    width = 100,
-    height = 30,
-    border = "rounded"  -- Options: rounded, single, double, solid, shadow
-  }
-})
-```
-
 ### Available Models
 ```lua
 require('vayai').setup({
