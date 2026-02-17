@@ -244,55 +244,10 @@ sudo update-ca-certificates
 :LLMTest
 ```
 
-### Connection Timeouts
-
-**Problem:** Large models taking too long.
-
-**Solution:**
-```lua
-require('vayai').setup({
-  timeout = 120  -- Increase to 120 seconds
-})
-```
-
-### "No code selected" Error
-
-**Problem:** Trying to use visual mode commands without selecting code.
-
-**Solution:**
-```vim
-" 1. Enter visual mode first
-V  " (or v for character-wise)
-
-" 2. Select some lines
-jjj
-
-" 3. Then run command
-:LLMExplain
-" Or press <leader>le
-```
-
-### Plugin Not Loading
-
-**Solution:**
-```vim
-" Check Lazy status
-:Lazy
-
-" Check for errors
-:messages
-
-" Reload plugin
-:Lazy reload vayai.nvim
-```
-
 ## 🔒 Security Notes
 
-- **Never commit** your API key to version control
-- Store `.pem` files in a secure location with restricted permissions
 - Use environment variables for credentials
 - Don't share your `combined_bundle.pem` file
-- Add sensitive files to `.gitignore`
 ```bash
 # Set proper permissions on certificate
 chmod 600 ~/.config/nvim/certs/combined_bundle.pem
