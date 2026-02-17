@@ -7,7 +7,9 @@ M.state = {
   response_win = nil,
   loading_buf = nil,
   loading_win = nil,
-  loading_timer = nil
+  loading_timer = nil,
+  stream_mode = false,
+  stream_start_line = 3, -- Line after header
 }
 
 -- Get visual selection
@@ -86,7 +88,119 @@ function M.create_float_win(buf, opts)
   return win
 end
 
--- Show response in floating window
+-- Initialize streaming response window
+function M.init_streaming_response(model)
+  -- Close any existing response window
+  M.close_response_window()
+  
+  -- Create buffer if it doesn't exist
+  M.state.response_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_option(M.state.response_buf, 'bufhidden', 'wipe')
+  vim.api.nvim_buf_set_option(M.state.response_buf, 'filetype', 'markdown')
+  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', true)
+  
+  -- Add initial header
+  local header_lines = {
+    "<!-- Response... Press 'q' or <Esc> to close -->",
+    "",
+    "" -- This is where content will start
+  }
+  
+  vim.api.nvim_buf_set_lines(M.state.response_buf, 0, -1, false, header_lines)
+  
+  -- Create window with dynamic height
+  M.state.response_win = M.create_float_win(M.state.response_buf, {
+    title = " " .. model .. " ",
+    height = 20 -- Start with reasonable height
+  })
+  
+  -- Set keymaps for closing
+  local close_keys = { 'q', '<Esc>' }
+  for _, key in ipairs(close_keys) do
+    vim.api.nvim_buf_set_keymap(M.state.response_buf, 'n', key, 
+      ':close<CR>', { silent = true, noremap = true })
+  end
+  
+  M.state.stream_mode = true
+  M.state.stream_start_line = 3
+  
+  -- Auto-scroll to bottom
+  vim.api.nvim_win_set_cursor(M.state.response_win, {M.state.stream_start_line, 0})
+end
+
+-- Append streaming chunk to response window
+function M.append_stream_chunk(chunk, full_response)
+  if not M.state.response_buf or not vim.api.nvim_buf_is_valid(M.state.response_buf) then
+    return
+  end
+  
+  if not M.state.response_win or not vim.api.nvim_win_is_valid(M.state.response_win) then
+    return
+  end
+  
+  -- Make buffer modifiable
+  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', true)
+  
+  -- Split the full response into lines and update the buffer
+  local lines = vim.split(full_response, '\n')
+  
+  -- Update buffer starting from stream_start_line
+  vim.api.nvim_buf_set_lines(M.state.response_buf, M.state.stream_start_line - 1, -1, false, lines)
+  
+  -- Auto-scroll to bottom
+  local line_count = vim.api.nvim_buf_line_count(M.state.response_buf)
+  vim.api.nvim_win_set_cursor(M.state.response_win, {line_count, 0})
+  
+  -- Dynamically resize window if needed
+  local current_lines = line_count
+  local max_height = 40
+  local new_height = math.min(current_lines + 2, max_height)
+  
+  -- Update window height
+  vim.api.nvim_win_set_height(M.state.response_win, new_height)
+end
+
+-- Finalize streaming response
+function M.finalize_stream_response(model)
+  if not M.state.response_buf or not vim.api.nvim_buf_is_valid(M.state.response_buf) then
+    return
+  end
+  
+  -- Update header to show it's complete
+  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', true)
+  
+  local new_header = {
+    "<!-- Press 'y' to copy, 'q' or <Esc> to close -->",
+    ""
+  }
+  
+  vim.api.nvim_buf_set_lines(M.state.response_buf, 0, 2, false, new_header)
+  
+  -- Make buffer non-modifiable
+  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', false)
+  
+  -- Update window title
+  if M.state.response_win and vim.api.nvim_win_is_valid(M.state.response_win) then
+    vim.api.nvim_win_set_config(M.state.response_win, {
+      title = " " .. model .. " ",
+    })
+  end
+  
+  -- Add keymap to copy content
+  vim.api.nvim_buf_set_keymap(M.state.response_buf, 'n', 'y', '', {
+    silent = true,
+    noremap = true,
+    callback = function()
+      local content = table.concat(vim.api.nvim_buf_get_lines(M.state.response_buf, 2, -1, false), "\n")
+      vim.fn.setreg("+", content)
+      vim.notify("✓ Copied to clipboard", vim.log.levels.INFO)
+    end
+  })
+  
+  M.state.stream_mode = false
+end
+
+-- Show response in floating window (non-streaming version)
 function M.show_response(response, model)
   -- Create buffer if it doesn't exist
   if not M.state.response_buf or not vim.api.nvim_buf_is_valid(M.state.response_buf) then
@@ -142,6 +256,15 @@ function M.show_response(response, model)
       vim.notify("✓ Copied to clipboard", vim.log.levels.INFO)
     end
   })
+end
+
+-- Close response window
+function M.close_response_window()
+  if M.state.response_win and vim.api.nvim_win_is_valid(M.state.response_win) then
+    vim.api.nvim_win_close(M.state.response_win, true)
+  end
+  M.state.response_win = nil
+  M.state.stream_mode = false
 end
 
 -- Show loading indicator

@@ -55,19 +55,45 @@ function M.ask(question)
   end
   
   M.state.is_loading = true
-  ui.show_loading("Asking " .. M.state.current_model .. "...")
   
-  api.ask_model(M.state.current_model, question, function(response, error)
-    M.state.is_loading = false
-    ui.hide_loading()
+  -- Check if streaming is enabled
+  if config.options.stream then
+    -- Initialize streaming response window
+    ui.init_streaming_response(M.state.current_model)
     
-    if error then
-      ui.show_error("Error: " .. error)
-    else
-      M.state.last_response = response
-      ui.show_response(response, M.state.current_model)
+    -- Define stream callback
+    local stream_callback = function(chunk, full_response)
+      ui.append_stream_chunk(chunk, full_response)
     end
-  end)
+    
+    -- Make API call with streaming
+    api.ask_model(M.state.current_model, question, function(response, error)
+      M.state.is_loading = false
+      
+      if error then
+        ui.close_response_window()
+        ui.show_error("Error: " .. error)
+      else
+        M.state.last_response = response
+        ui.finalize_stream_response(M.state.current_model)
+      end
+    end, nil, stream_callback)
+  else
+    -- Non-streaming mode
+    ui.show_loading("Asking " .. M.state.current_model .. "...")
+    
+    api.ask_model(M.state.current_model, question, function(response, error)
+      M.state.is_loading = false
+      ui.hide_loading()
+      
+      if error then
+        ui.show_error("Error: " .. error)
+      else
+        M.state.last_response = response
+        ui.show_response(response, M.state.current_model)
+      end
+    end)
+  end
 end
 
 -- Explain selected code
@@ -87,18 +113,43 @@ function M.explain_code()
   )
   
   M.state.is_loading = true
-  ui.show_loading("Explaining code with " .. M.state.current_model .. "...")
   
-  api.ask_model(M.state.current_model, question, function(response, error)
-    M.state.is_loading = false
-    ui.hide_loading()
+  -- Check if streaming is enabled
+  if config.options.stream then
+    -- Initialize streaming response window
+    ui.init_streaming_response(M.state.current_model .. " - Code Explanation")
     
-    if error then
-      ui.show_error("Error: " .. error)
-    else
-      ui.show_response(response, M.state.current_model .. " - Code Explanation")
+    -- Define stream callback
+    local stream_callback = function(chunk, full_response)
+      ui.append_stream_chunk(chunk, full_response)
     end
-  end, config.options.system_prompts.explain)
+    
+    -- Make API call with streaming
+    api.ask_model(M.state.current_model, question, function(response, error)
+      M.state.is_loading = false
+      
+      if error then
+        ui.close_response_window()
+        ui.show_error("Error: " .. error)
+      else
+        ui.finalize_stream_response(M.state.current_model .. " - Code Explanation")
+      end
+    end, config.options.system_prompts.explain, stream_callback)
+  else
+    -- Non-streaming mode
+    ui.show_loading("Explaining code with " .. M.state.current_model .. "...")
+    
+    api.ask_model(M.state.current_model, question, function(response, error)
+      M.state.is_loading = false
+      ui.hide_loading()
+      
+      if error then
+        ui.show_error("Error: " .. error)
+      else
+        ui.show_response(response, M.state.current_model .. " - Code Explanation")
+      end
+    end, config.options.system_prompts.explain)
+  end
 end
 
 -- Query selected code with custom question
@@ -124,18 +175,43 @@ function M.query_code(user_question)
   )
   
   M.state.is_loading = true
-  ui.show_loading("Querying " .. M.state.current_model .. "...")
   
-  api.ask_model(M.state.current_model, question, function(response, error)
-    M.state.is_loading = false
-    ui.hide_loading()
+  -- Check if streaming is enabled
+  if config.options.stream then
+    -- Initialize streaming response window
+    ui.init_streaming_response(M.state.current_model .. " - Code Query")
     
-    if error then
-      ui.show_error("Error: " .. error)
-    else
-      ui.show_response(response, M.state.current_model .. " - Code Query")
+    -- Define stream callback
+    local stream_callback = function(chunk, full_response)
+      ui.append_stream_chunk(chunk, full_response)
     end
-  end)
+    
+    -- Make API call with streaming
+    api.ask_model(M.state.current_model, question, function(response, error)
+      M.state.is_loading = false
+      
+      if error then
+        ui.close_response_window()
+        ui.show_error("Error: " .. error)
+      else
+        ui.finalize_stream_response(M.state.current_model .. " - Code Query")
+      end
+    end, nil, stream_callback)
+  else
+    -- Non-streaming mode
+    ui.show_loading("Querying " .. M.state.current_model .. "...")
+    
+    api.ask_model(M.state.current_model, question, function(response, error)
+      M.state.is_loading = false
+      ui.hide_loading()
+      
+      if error then
+        ui.show_error("Error: " .. error)
+      else
+        ui.show_response(response, M.state.current_model .. " - Code Query")
+      end
+    end)
+  end
 end
 
 -- Switch model
@@ -176,7 +252,9 @@ end
 function M.cancel_request()
   if M.state.is_loading then
     M.state.is_loading = false
+    api.cancel()
     ui.hide_loading()
+    ui.close_response_window()
     vim.notify("Request cancelled", vim.log.levels.WARN)
   else
     vim.notify("No active request to cancel", vim.log.levels.INFO)

@@ -22,8 +22,8 @@ M.defaults = {
   
   -- API Parameters
   temperature = 0.7,
-  max_tokens = 1000,
-  stream = false,
+  max_tokens = 2000,
+  stream = true,  -- Enable streaming by default for real-time response
   timeout = 90,
   
   -- System prompts
