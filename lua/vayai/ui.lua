@@ -82,8 +82,8 @@ function M.create_float_win(buf, opts)
   local win = vim.api.nvim_open_win(buf, true, win_opts)
   
   -- Set window options
-  vim.api.nvim_win_set_option(win, 'wrap', true)
-  vim.api.nvim_win_set_option(win, 'linebreak', true)
+  vim.api.nvim_set_option_value('wrap', true, { win = win })
+  vim.api.nvim_set_option_value('linebreak', true, { win = win })
   
   return win
 end
@@ -95,9 +95,9 @@ function M.init_streaming_response(model)
   
   -- Create buffer if it doesn't exist
   M.state.response_buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_option(M.state.response_buf, 'bufhidden', 'wipe')
-  vim.api.nvim_buf_set_option(M.state.response_buf, 'filetype', 'markdown')
-  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', true)
+  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = M.state.response_buf })
+  vim.api.nvim_set_option_value('filetype', 'markdown', { buf = M.state.response_buf })
+  vim.api.nvim_set_option_value('modifiable', true, { buf = M.state.response_buf })
   
   -- Add initial header
   local header_lines = {
@@ -117,8 +117,7 @@ function M.init_streaming_response(model)
   -- Set keymaps for closing
   local close_keys = { 'q', '<Esc>' }
   for _, key in ipairs(close_keys) do
-    vim.api.nvim_buf_set_keymap(M.state.response_buf, 'n', key, 
-      ':close<CR>', { silent = true, noremap = true })
+    vim.keymap.set('n', key, ':close<CR>', { silent = true, buffer = M.state.response_buf })
   end
   
   M.state.stream_mode = true
@@ -139,7 +138,7 @@ function M.append_stream_chunk(chunk, full_response)
   end
   
   -- Make buffer modifiable
-  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', true)
+  vim.api.nvim_set_option_value('modifiable', true, { buf = M.state.response_buf })
   
   -- Split the full response into lines and update the buffer
   local lines = vim.split(full_response, '\n')
@@ -167,7 +166,7 @@ function M.finalize_stream_response(model)
   end
   
   -- Update header to show it's complete
-  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', true)
+  vim.api.nvim_set_option_value('modifiable', true, { buf = M.state.response_buf })
   
   local new_header = {
     "<!-- Press 'y' to copy, 'q' or <Esc> to close -->",
@@ -177,7 +176,7 @@ function M.finalize_stream_response(model)
   vim.api.nvim_buf_set_lines(M.state.response_buf, 0, 2, false, new_header)
   
   -- Make buffer non-modifiable
-  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', false)
+  vim.api.nvim_set_option_value('modifiable', false, { buf = M.state.response_buf })
   
   -- Update window title
   if M.state.response_win and vim.api.nvim_win_is_valid(M.state.response_win) then
@@ -187,15 +186,11 @@ function M.finalize_stream_response(model)
   end
   
   -- Add keymap to copy content
-  vim.api.nvim_buf_set_keymap(M.state.response_buf, 'n', 'y', '', {
-    silent = true,
-    noremap = true,
-    callback = function()
-      local content = table.concat(vim.api.nvim_buf_get_lines(M.state.response_buf, 2, -1, false), "\n")
-      vim.fn.setreg("+", content)
-      vim.notify("✓ Copied to clipboard", vim.log.levels.INFO)
-    end
-  })
+  vim.keymap.set('n', 'y', function()
+    local content = table.concat(vim.api.nvim_buf_get_lines(M.state.response_buf, 2, -1, false), "\n")
+    vim.fn.setreg("+", content)
+    vim.notify("✓ Copied to clipboard", vim.log.levels.INFO)
+  end, { silent = true, buffer = M.state.response_buf })
   
   M.state.stream_mode = false
 end
@@ -205,12 +200,12 @@ function M.show_response(response, model)
   -- Create buffer if it doesn't exist
   if not M.state.response_buf or not vim.api.nvim_buf_is_valid(M.state.response_buf) then
     M.state.response_buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_option(M.state.response_buf, 'bufhidden', 'wipe')
-    vim.api.nvim_buf_set_option(M.state.response_buf, 'filetype', 'markdown')
+    vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = M.state.response_buf })
+    vim.api.nvim_set_option_value('filetype', 'markdown', { buf = M.state.response_buf })
   end
   
   -- Make sure buffer is modifiable
-  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', true)
+  vim.api.nvim_set_option_value('modifiable', true, { buf = M.state.response_buf })
   
   -- Parse response and extract code if present
   local lines = vim.split(response, '\n')
@@ -228,7 +223,7 @@ function M.show_response(response, model)
   vim.api.nvim_buf_set_lines(M.state.response_buf, 0, -1, false, all_lines)
   
   -- Now make buffer non-modifiable
-  vim.api.nvim_buf_set_option(M.state.response_buf, 'modifiable', false)
+  vim.api.nvim_set_option_value('modifiable', false, { buf = M.state.response_buf })
   
   -- Calculate appropriate height
   local height = math.min(#all_lines + 2, 30)
@@ -242,20 +237,15 @@ function M.show_response(response, model)
   -- Set keymaps for closing
   local close_keys = { 'q', '<Esc>' }
   for _, key in ipairs(close_keys) do
-    vim.api.nvim_buf_set_keymap(M.state.response_buf, 'n', key, 
-      ':close<CR>', { silent = true, noremap = true })
+    vim.keymap.set('n', key, ':close<CR>', { silent = true, buffer = M.state.response_buf })
   end
   
   -- Add keymap to copy content
-  vim.api.nvim_buf_set_keymap(M.state.response_buf, 'n', 'y', '', {
-    silent = true,
-    noremap = true,
-    callback = function()
-      local content = table.concat(vim.api.nvim_buf_get_lines(M.state.response_buf, 2, -1, false), "\n")
-      vim.fn.setreg("+", content)
-      vim.notify("✓ Copied to clipboard", vim.log.levels.INFO)
-    end
-  })
+  vim.keymap.set('n', 'y', function()
+    local content = table.concat(vim.api.nvim_buf_get_lines(M.state.response_buf, 2, -1, false), "\n")
+    vim.fn.setreg("+", content)
+    vim.notify("✓ Copied to clipboard", vim.log.levels.INFO)
+  end, { silent = true, buffer = M.state.response_buf })
 end
 
 -- Close response window
@@ -280,8 +270,8 @@ function M.show_loading(message)
   
   -- Create buffer
   M.state.loading_buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_option(M.state.loading_buf, 'bufhidden', 'wipe')
-  vim.api.nvim_buf_set_option(M.state.loading_buf, 'modifiable', true)
+  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = M.state.loading_buf })
+  vim.api.nvim_set_option_value('modifiable', true, { buf = M.state.loading_buf })
   
   local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local frame = 1
@@ -296,7 +286,7 @@ function M.show_loading(message)
   }
   
   vim.api.nvim_buf_set_lines(M.state.loading_buf, 0, -1, false, lines)
-  vim.api.nvim_buf_set_option(M.state.loading_buf, 'modifiable', false)
+  vim.api.nvim_set_option_value('modifiable', false, { buf = M.state.loading_buf })
   
   -- Create small centered window
   M.state.loading_win = M.create_float_win(M.state.loading_buf, {
@@ -306,11 +296,10 @@ function M.show_loading(message)
   })
   
   -- Keymap to cancel
-  vim.api.nvim_buf_set_keymap(M.state.loading_buf, 'n', 'q', 
-    ':LLMCancel<CR>', { silent = true, noremap = true })
+  vim.keymap.set('n', 'q', ':LLMCancel<CR>', { silent = true, buffer = M.state.loading_buf })
   
   -- Animate spinner
-  M.state.loading_timer = vim.loop.new_timer()
+  M.state.loading_timer = vim.uv.new_timer()
   M.state.loading_timer:start(0, 100, vim.schedule_wrap(function()
     -- Check if window is still valid
     if not M.state.loading_win or not vim.api.nvim_win_is_valid(M.state.loading_win) then
@@ -335,9 +324,9 @@ function M.show_loading(message)
     frame = (frame % #spinner) + 1
     lines[2] = "  " .. spinner[frame] .. " " .. message
     
-    vim.api.nvim_buf_set_option(M.state.loading_buf, 'modifiable', true)
+    vim.api.nvim_set_option_value('modifiable', true, { buf = M.state.loading_buf })
     vim.api.nvim_buf_set_lines(M.state.loading_buf, 0, -1, false, lines)
-    vim.api.nvim_buf_set_option(M.state.loading_buf, 'modifiable', false)
+    vim.api.nvim_set_option_value('modifiable', false, { buf = M.state.loading_buf })
   end))
 end
 

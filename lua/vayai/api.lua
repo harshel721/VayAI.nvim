@@ -16,7 +16,7 @@ local function parse_sse_line(line)
     end
     
     -- Try to parse JSON
-    local ok, data = pcall(vim.fn.json_decode, json_str)
+    local ok, data = pcall(vim.json.decode, json_str)
     if ok then
       return data, false
     end
@@ -56,7 +56,7 @@ function M.ask_model(model_name, question, callback, system_prompt, stream_callb
   local ca_bundle = vim.fn.expand(opts.ca_bundle_path)
   
   -- Convert payload to JSON
-  local json_payload = vim.fn.json_encode(payload)
+  local json_payload = vim.json.encode(payload)
   
   -- Prepare curl command
   local url = opts.api_base .. "/api/chat/completions"
@@ -70,7 +70,7 @@ function M.ask_model(model_name, question, callback, system_prompt, stream_callb
     "--max-time", tostring(opts.timeout),
     "-H", headers[1],
     "-H", headers[2],
-    "-d", json_payload
+    "-d", "@-" -- Read payload from stdin
   }
   
   if should_stream then
@@ -149,7 +149,7 @@ function M.ask_model(model_name, question, callback, system_prompt, stream_callb
               error_msg = "Connection refused. Check API base URL."
             elseif buffer ~= "" then
               -- Try to parse error response
-              local ok, data = pcall(vim.fn.json_decode, buffer)
+              local ok, data = pcall(vim.json.decode, buffer)
               if ok and data.error then
                 error_msg = data.error.message or vim.inspect(data.error)
               end
@@ -161,6 +161,12 @@ function M.ask_model(model_name, question, callback, system_prompt, stream_callb
     }
     
     current_job = vim.fn.jobstart(cmd, job_opts)
+    
+    -- Send payload to stdin
+    if current_job > 0 then
+      vim.fn.chansend(current_job, json_payload)
+      vim.fn.chanclose(current_job, 'stdin')
+    end
     
   else
     -- Non-streaming mode (original behavior)
@@ -183,7 +189,7 @@ function M.ask_model(model_name, question, callback, system_prompt, stream_callb
           local response_body = table.concat(output, "\n")
           
           -- Parse JSON response
-          local ok, data = pcall(vim.fn.json_decode, response_body)
+          local ok, data = pcall(vim.json.decode, response_body)
           if ok and data.choices and data.choices[1] then
             local content = data.choices[1].message.content
             callback(content, nil)
@@ -208,7 +214,7 @@ function M.ask_model(model_name, question, callback, system_prompt, stream_callb
             error_msg = "Connection refused. Check API base URL."
           elseif error_body ~= "" then
             -- Try to parse error response
-            local ok, data = pcall(vim.fn.json_decode, error_body)
+            local ok, data = pcall(vim.json.decode, error_body)
             if ok and data.error then
               error_msg = data.error.message or vim.inspect(data.error)
             end
